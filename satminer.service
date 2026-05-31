@@ -1,0 +1,21 @@
+# /etc/systemd/system/satminer.service
+# 安装: 见 SETUP_VPS.md. 改 User / WorkingDirectory / 路径为你自己的.
+[Unit]
+Description=SAT GPU Miner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/SatMiner-main
+# 用环境变量传私钥, 不写进 config.yaml. 也可放进一个 600 权限的 EnvironmentFile.
+Environment=PRIVATE_KEY=0xPUT_YOUR_BURNER_KEY_HERE
+# 首次验证算力时设 Environment=DRY_RUN=1 , 确认 OK 再删掉这行重启
+ExecStart=/usr/bin/python3 /root/SatMiner-main/gpu_miner.py
+Restart=always
+RestartSec=10
+# 日志: journalctl -u satminer -f
+
+[Install]
+WantedBy=multi-user.target

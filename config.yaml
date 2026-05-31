@@ -1,0 +1,74 @@
+# ============================================================
+# SAT 反应式矿机 — Linux VPS + NVIDIA GPU 配置 (gpu_miner.py 读取)
+# VPS GPU mining config. Edit private key + rpc_urls, then run gpu_miner.py
+# ============================================================
+
+# --- 钱包私钥 ---
+# 推荐用环境变量传, 不要明文写这里 (见 SETUP_VPS.md):
+#     export PRIVATE_KEY=0xabc...
+# 多钱包轮换:
+#     export PRIVATE_KEYS=0xaaa...,0xbbb...
+# 若坚持写文件, 取消下一行注释并填入 (用一个只放少量 BNB 的小号!):
+# private_key: "YOUR_PRIVATE_KEY_HERE"
+
+# --- SAT 合约 / BSC 主网 ---
+contract_address: "0x14Dc4b4929c664534f1d4D64107d8F36CbF906a0"
+chain_id: 56
+
+# --- RPC (HTTP): gpu_miner.py 用这个读链 + 发交易. 必须填! ---
+# 会自动测速选最快可达的那个. 想更快可换付费节点 (QuickNode/Ankr/dRPC 等).
+rpc_urls:
+  - "https://bsc-dataseed.bnbchain.org"
+  - "https://bsc-dataseed1.defibit.io"
+  - "https://bsc-dataseed1.ninicoin.io"
+  - "https://rpc.ankr.com/bsc"
+  - "https://bsc.publicnode.com"
+
+# --- 求解器: GPU ---
+# 按设备名子串选卡; 多卡/有核显时填 "NVIDIA" 或具体型号如 "3090" 避免选错. 单卡可留空.
+gpu_device: "NVIDIA"
+# GPU 占用率(%): 100=全速(出解最快, 推荐) | 40~50=温控省电但出解慢.
+gpu_util: 100
+# 每批扫描 nonce 数. 看 verbose/dry_run 里的 "出解 ms" 调:
+#   太大→响应慢(过期解多, 抢不过); 太小→吞吐低. 3070/3080 建议 8M~32M, A100/4090 可更大.
+gpu_batch_size: 16000000
+
+# --- Gas: 跟网络地板价, 不加价 (和对手一致, 省钱) ---
+use_network_gas: true
+network_gas_multiplier: 1.0
+min_gas_price_gwei: 0.05
+max_gas_price_gwei: 5
+gas_price_gwei: 0.1          # use_network_gas:false 时用这个固定价
+gas_limit: 200000
+
+# --- 省钱闸门: 网络 gas 高于这个值就暂停挖矿 (0 = 关闭, 任何 gas 都挖) ---
+mine_only_below_gwei: 0
+gas_recheck_secs: 15
+
+# --- 提交策略 ---
+wait_for_receipt: false           # false=fire-and-forget(推荐, GPU不空等); true=同步等确认
+simulate_before_submit: true      # 提交前 eth_call 预检, 被抢先就跳过省 gas
+simulate_gas_threshold_gwei: 0.1  # 仅当网络 gas 高于此值才模拟 (便宜时全力抢)
+recheck_challenge_before_send: true   # 发送前再查一次挑战号, 变了就跳过 (0 gas)
+one_submit_per_challenge: true    # 每个挑战号只提交一笔 (单 GPU 多发只会互相 revert)
+
+# --- 挑战号检测 (gpu_miner 用轮询; 间隔越小越灵敏但 RPC 压力越大) ---
+challenge_check_secs: 6
+target_refresh_secs: 60
+
+# --- 试运行: 只算解+计时不提交不花 gas. VPS 首次跑务必先 true 验算力! ---
+# 也可用环境变量 DRY_RUN=1 临时开启
+dry_run: true
+
+# --- 运行/日志 ---
+auto_restart: true
+quiet_logs: true          # true=只打 10s 一次统计汇总; false=逐轮详细 (调参时用)
+log_interval: 10
+stats_interval_secs: 10
+receipt_poll_secs: 3
+receipt_timeout_secs: 180
+
+# --- nonce 自愈 (fire 模式; 一般默认即可) ---
+nonce_stuck_threshold: 5
+nonce_heal_cooldown_secs: 30
+nonce_bump_multiplier: 1.5
